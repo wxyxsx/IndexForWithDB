@@ -4,15 +4,15 @@
 #include <iomanip>
 #include <stack>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
-#include <set>
 #include <string>
 
 constexpr auto N = 3; // 节点能放下key的数量
 constexpr auto NULLADDR = 0; // NULL在数据库地址中的表示
 
 namespace db {
-	// TODO 继承 实现LOAD和SAVE
+	// TODO 继承 实现LOAD和DUMP 
 	class Node // TODO extend virtual page
 	{
 	public:
@@ -27,13 +27,12 @@ namespace db {
 
 		Node(void) {
 			n = 0;
-			for (int i = 0;i < N;i++) {
-				k[i] = 0;
-				addr[i] = NULLADDR;
-			}
-			addr[N + 1] = NULLADDR;
+			for (int i = 0;i < N;i++) k[i] = 0;
+			for (int i = 0;i < N + 1;i++) addr[i] = NULLADDR;
 			flag = 0;
 		}
+
+		//Node(virtual_page &&p) {}
 	};
 
 	class btree
@@ -41,7 +40,7 @@ namespace db {
 	private:
 		std::vector<Node*> objlst; // 存放所有节点的指针
 		std::unordered_map<long long, int> stb; // 根据数据库地址检索在objlst中的偏移 
-		std::set<int> ftb; // 存放所有objlst中空闲的偏移 set中数据自动排序 便于回收空间
+		std::unordered_set<int> ftb; // 存放所有objlst中空闲的偏移 set中数据自动排序 便于回收空间
 		long long sid; // 模拟数据库地址
 		long long root; // root节点数据库地址 因为root节点也会变动
 
@@ -71,14 +70,14 @@ namespace db {
 			sid++;
 
 			int key = 0;
-			if (ftb.size != 0) { // 如果有空闲空间
+			if (ftb.size() != 0) { // 如果有空闲空间
 				key = *(ftb.begin());
 				ftb.erase(key);
 				objlst[key] = nd;
 			}
 			else {
+				key = objlst.size();
 				objlst.push_back(nd);
-				key = objlst.size;
 			}
 			stb[addr] = key;
 			return addr;
@@ -111,7 +110,7 @@ namespace db {
 		}
 
 		// 查找非叶节点下最左端叶节点的第一个值
-		long long search_left(Node* nd) {
+		int search_left(Node* nd) {
 			Node* r = nd;
 			while (r->flag != 0) // 直到到达叶节点
 				r = getnode(r->addr[0]);
@@ -150,7 +149,7 @@ namespace db {
 				span_insert(nd, nnd, nd->k[i], nd->addr[i + s], i, if_leaf);
 
 			if (if_leaf) { // 链表节点插入
-				nnd->addr[N + 1] = nd->addr[N + 1];
+				nnd->addr[N] = nd->addr[N];
 				nd->addr[N] = addr;
 			}
 			else {
@@ -214,6 +213,7 @@ namespace db {
 
 		btree(void) {
 			// 即使索引没有元素也要有数据块
+			sid = 1;
 			Node* nd = new Node();
 			nd->flag = 1;
 			root = setnode(nd);
@@ -232,10 +232,10 @@ namespace db {
 			int res = -1;
 
 			Node* p = getnode(root);
-			if (p->n = 0) return res;
+			if (p->n == 0) return res;
 			// root节点可能为空
 
-			while (p->flag != 0) { // 如果不指向叶节点，继续向下找
+			while (p->flag != 0) { // 如果p不是叶节点，继续向下找
 				int r = search_index(p, key);
 				p = getnode(p->addr[r]);
 			}
@@ -257,7 +257,7 @@ namespace db {
 
 			if (ndroot->n == 0) { // root节点可能为空
 				Node* nnd = new Node();
-				int addr = setnode(nnd);
+				long long addr = setnode(nnd);
 				nnd->flag = 0;
 				direct_insert(nnd, key, value, true);
 				direct_insert(ndroot, key, addr, false);
@@ -266,7 +266,7 @@ namespace db {
 
 			std::stack<Node*> path; // 存放查询路径
 
-			while (p->flag != 0) {
+			while (p != NULL && p->flag != 0) {
 				path.push(p); // 当前节点入栈
 				int r = search_index(p, key);
 				p = getnode(p->addr[r]);
@@ -274,11 +274,11 @@ namespace db {
 
 			if (p == NULL) { // 如果p为空只可能是在root节点最左端
 				Node* nnd = new Node();
-				int addr = setnode(nnd);
+				long long addr = setnode(nnd);
 				nnd->flag = 0;
 				direct_insert(nnd, key, value, true);
 				ndroot->addr[0] = addr;
-				nnd->addr[N + 1] = ndroot->addr[1];
+				nnd->addr[N] = ndroot->addr[1];
 				return;
 			}
 
@@ -347,9 +347,9 @@ namespace db {
 
 			while (p->flag != 0) p = getnode(p->addr[0]);
 
-			while (p->addr[N + 1] != NULLADDR) {
+			while (p != NULL) {
 				print_leaf(p);
-				p = getnode(p->addr[N + 1]);
+				p = getnode(p->addr[N]);
 			}
 		}
 	};

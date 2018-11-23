@@ -1,7 +1,7 @@
 ﻿#ifndef PCH_H
 #define PCH_H
 
-#include"node.h"
-#include"tree.h"
+#include "node.hpp"
+#include "tree.hpp"
 
 #endif 

@@ -8,47 +8,65 @@
 #include <vector>
 #include <string>
 
-constexpr auto N = 3; // 节点能放下key的数量
-constexpr auto NULLADDR = 0; // NULL在数据库地址中的表示
+constexpr auto N = 3;		  // 节点能放下key的数量
+constexpr auto NULLADDR = 0;  // NULL在数据库地址中的表示
 
 namespace db {
-	// TODO 继承 实现LOAD和DUMP 
-	class Node // TODO extend virtual page
+	/*
+	TODO 继承 virtual page
+	实现load dump close node_page
+	参考 tuple.hpp
+	*/
+	class Node
 	{
 	public:
-		int n; // 节点当前key的数量
-		int k[N]; // key数组
-		long long addr[N + 1]; // 数据库地址数组
+		int n;					// 节点当前key的数量
+		int k[N];				// key数组
+		long long addr[N + 1];  // 数据库地址数组
 		/*
 		如果是非叶节点则0~N存放其它节点的数据库地址
 		如果是叶节点则0~N-1存放数据节点的位置 N存放next
 		*/
-		int flag; // 0:叶子节点 1:非叶指向叶子 2:非叶指向非叶
+		int flag;				// 0:叶子节点 1:非叶指向叶子 2:非叶指向非叶
 
 		Node(void) {
 			n = 0;
-			for (int i = 0;i < N;i++) k[i] = 0;
-			for (int i = 0;i < N + 1;i++) addr[i] = NULLADDR;
+			for (int i = 0;i < N;i++) {
+				k[i] = 0;
+				addr[i] = NULLADDR;
+			}
+			addr[N] = NULLADDR;
 			flag = 0;
 		}
 
-		//Node(virtual_page &&p) {}
+		// Node(virtual_page &&p) {}
 	};
 
 	class btree
 	{
 	private:
-		std::vector<Node*> objlst; // 存放所有节点的指针
+		std::vector<Node*> objlst;				// 存放所有节点的指针
 		std::unordered_map<long long, int> stb; // 根据数据库地址检索在objlst中的偏移 
-		std::unordered_set<int> ftb; // 存放所有objlst中空闲的偏移 set中数据自动排序 便于回收空间
-		long long sid; // 模拟数据库地址
+		std::unordered_set<int> ftb;			// 存放所有objlst中空闲的偏移 set中数据自动排序 便于回收空间
+
+		/*
+		keeper hold() loosen()
+		hold(addr)获得virtualpage 然后对virtualpage尝试load，判断是否位空
+		用testnode尝试load 在判断标志位 然后loosen？？
+		反正就是能得到数据库地址 应该有空闲块管理结构 bitmap也好 逐个载入也过于慢了
+		还需要实现load和exit
+		load就是根据root节点的数据库地址 建立node，在依次拉出新的node 放入全局管理的数据结构中 和目前getset方法不一样
+		exit就是遍历所有节点，发送exit()指令，把数据写入
+		*/
+
+		long long sid;	// 模拟数据库地址
 		long long root; // root节点数据库地址 因为root节点也会变动
 
 		/*
 		Node* getnode(long long addr);
 		long long setnode(Node* nd);
 		void span_insert(Node* a, Node* b, int k, long long v, int o, bool if_leaf);
-		search_index(Node* nd, int k);
+		int search_index(Node* nd, int k);
 		long long search_left(Node* nd);
 		void direct_insert(Node* nd, int k, long long v, bool if_leaf);
 		long long split_insert(Node* nd, int k, long long v, bool if_leaf);
@@ -57,7 +75,7 @@ namespace db {
 		void print_nonleaf(Node* nd, int level)
 		*/
 
-		// 根据数据库地址获取节点指针
+		// 根据数据库地址获取节点指针 地址为空则返回NULL
 		Node* getnode(long long addr) {
 			if (addr == NULLADDR) return NULL;
 			return objlst[stb[addr]];
@@ -70,13 +88,13 @@ namespace db {
 			sid++;
 
 			int key = 0;
-			if (ftb.size() != 0) { // 如果有空闲空间
-				key = *(ftb.begin());
+			if (ftb.size() != 0) {			// 如果有空闲空间 则从set中获取偏移
+				key = *(ftb.begin());		// ***可能有问题因为没尝试过***
 				ftb.erase(key);
 				objlst[key] = nd;
 			}
 			else {
-				key = objlst.size();
+				key = (int)objlst.size();	// size_t->int 应该不会超
 				objlst.push_back(nd);
 			}
 			stb[addr] = key;
@@ -91,7 +109,7 @@ namespace db {
 				a->k[o] = k;
 				a->addr[o + s] = v;
 			}
-			else { // 新节点
+			else {		 // 新节点
 				b->k[i] = k;
 				b->addr[i + s] = v;
 			}
@@ -109,12 +127,12 @@ namespace db {
 			return r;
 		}
 
-		// 查找非叶节点下最左端叶节点的第一个值
+		// 查找非叶节点下最左端叶节点的第一个key
 		int search_left(Node* nd) {
 			Node* r = nd;
 			while (r->flag != 0) // 直到到达叶节点
 				r = getnode(r->addr[0]);
-			return r->k[0];
+			return r->k[0];		 // 应该不会出错 都分裂非叶节点了最左端必然有值
 		}
 
 		// 节点有足够的空间插入新元素
@@ -140,15 +158,15 @@ namespace db {
 
 			nnd->n = (int)((N + 1) / 2) - s;
 			nd->n = N + 1 - nnd->n;
-			nnd->flag = nd->flag; // 分裂节点位于同一层
+			nnd->flag = nd->flag;	// 分裂节点位于同一层
 
-			for (int i = N;i > r;i--) // 比key大的右移一位
+			for (int i = N;i > r;i--)				// 比key大的右移一位
 				span_insert(nd, nnd, nd->k[i - 1], nd->addr[i + s - 1], i, if_leaf);
 			span_insert(nd, nnd, k, v, r, if_leaf);
-			for (int i = r - 1;i > nd->n - 1;i--) // 比key小的k可能要迁移到新的节点
+			for (int i = r - 1;i > nd->n - 1;i--)	// 比key小的k可能要迁移到新的节点
 				span_insert(nd, nnd, nd->k[i], nd->addr[i + s], i, if_leaf);
 
-			if (if_leaf) { // 链表节点插入
+			if (if_leaf) {			// 链表节点插入
 				nnd->addr[N] = nd->addr[N];
 				nd->addr[N] = addr;
 			}
@@ -189,8 +207,7 @@ namespace db {
 		// 采用深度优先遍历
 		void print_nonleaf(Node* nd, int level) {
 			for (int i = 0;i < nd->n + 1;i++) {
-				if (i != 0) print_space(level);
-				// 第一个元素不用缩进
+				if (i != 0) print_space(level); // 第一个元素不用缩进
 
 				if (i != nd->n) std::cout << std::setw(3) << std::left << nd->k[i] << "--+";
 				else std::cout << "   --+";
@@ -205,14 +222,13 @@ namespace db {
 		/*
 		btree(void);
 		void create(int* arr, int len);
-		int search(int key);
+		long long search(int key);
 		void insert(int key, long long value);
 		void print_tree();
 		void print_leaf();
 		*/
 
-		btree(void) {
-			// 即使索引没有元素也要有数据块
+		btree(void) { // 即使索引没有元素也要有数据块
 			sid = 1;
 			Node* nd = new Node();
 			nd->flag = 1;
@@ -227,23 +243,21 @@ namespace db {
 			}
 		}
 
-		// TODO 要改成long long
-		int search(int key) {
-			int res = -1;
+		long long search(int key) {
+			long long res = -1;
 
 			Node* p = getnode(root);
-			if (p->n == 0) return res;
-			// root节点可能为空
+			if (p->n == 0) return res;  // root节点可能为空
 
-			while (p->flag != 0) { // 如果p不是叶节点，继续向下找
+			while (p->flag != 0) {		// 如果p不是叶节点，继续向下找
 				int r = search_index(p, key);
 				p = getnode(p->addr[r]);
 			}
 
-			if (p != NULL) { // 考虑root节点左节点可能为NUL
+			if (p != NULL) {			// 考虑root节点左节点可能为NUL
 				for (int i = 0;i < p->n;i++) {
 					if (key == p->k[i]) {
-						res = (int)(p->addr[i]);
+						res = (p->addr[i]);
 						break;
 					}
 				}
@@ -255,10 +269,10 @@ namespace db {
 			Node* ndroot = getnode(root);
 			Node* p = ndroot;
 
-			if (ndroot->n == 0) { // root节点可能为空
+			if (ndroot->n == 0) {	// root节点可能为空 新建叶节点 元素插入叶节点和根节点
 				Node* nnd = new Node();
-				long long addr = setnode(nnd);
 				nnd->flag = 0;
+				long long addr = setnode(nnd);
 				direct_insert(nnd, key, value, true);
 				direct_insert(ndroot, key, addr, false);
 				return;
@@ -267,12 +281,12 @@ namespace db {
 			std::stack<Node*> path; // 存放查询路径
 
 			while (p != NULL && p->flag != 0) {
-				path.push(p); // 当前节点入栈
+				path.push(p);		// 当前节点入栈
 				int r = search_index(p, key);
 				p = getnode(p->addr[r]);
 			}
 
-			if (p == NULL) { // 如果p为空只可能是在root节点最左端
+			if (p == NULL) {		// 如果p为空只可能是在root节点最左端 新建叶节点 地址放入根节点中
 				Node* nnd = new Node();
 				long long addr = setnode(nnd);
 				nnd->flag = 0;
@@ -282,14 +296,15 @@ namespace db {
 				return;
 			}
 
-			if (p->n < N) { // 最简单的情况，数据节点能放下
+			if (p->n < N) {				// 最简单的情况，数据节点能放下
 				direct_insert(p, key, value, true);
 				return;
 			}
-			// 之后的条件下需要分裂
+
+			// 之后的条件下需要分裂叶节点
 
 			long long v = split_insert(p, key, value, true);
-			int k = getnode(v)->k[0]; // 叶节点提供给上一层的key,value
+			int k = getnode(v)->k[0];   // 叶节点提供给上一层的key,value
 
 			p = path.top();
 			path.pop();
@@ -297,8 +312,8 @@ namespace db {
 			if (p == ndroot && ndroot->addr[0] == NULLADDR) {
 				/*
 				 例如插入的值一直增大 1,2,3,4
-				 导致 NULL<-1->1,2,3
-				 所以 1,2<-3->3,4
+				 导致 NULL [1] 1,2 [3] 3,4
+				 所以 1,2 [3] 3,4
 				*/
 				ndroot->k[0] = k;
 				ndroot->addr[0] = ndroot->addr[1];
@@ -312,12 +327,13 @@ namespace db {
 					direct_insert(p, k, v, false);
 					break;
 				}
-				// 以下情况还需继续分裂
+
+				// 以下情况还需继续分裂非叶节点
 
 				v = split_insert(p, k, v, false);
 				k = search_left(getnode(v));
 
-				if (p == ndroot) { // 如果要分裂的是root节点
+				if (p == ndroot) { // 如果要分裂的是root节点 需要新建root节点
 					Node* nnd = new Node();
 					long long addr = setnode(nnd);
 					nnd->n = 1;

@@ -37,6 +37,8 @@ int main()
 		146, 57, 380, 196, 224, 100, 54, 169, 49, 197, 334 };
 	tr->create(a, 200);
 	tr->print_tree();
+	tr->delkey(64);
+	tr->print_tree();
 	//tr->print_leaf();
 	//cout << tr->search(89) << "," << tr->search(21) << "," << tr->search(24) << endl;
 }

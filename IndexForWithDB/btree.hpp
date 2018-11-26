@@ -62,6 +62,7 @@ namespace db {
 		long long sid;	// 模拟数据库地址
 		long long root; // root节点数据库地址 因为root节点也会变动
 
+		int lfmin, nlfmin;
 		/*
 		Node* getnode(long long addr);
 		long long setnode(Node* nd);
@@ -156,7 +157,7 @@ namespace db {
 			Node* nnd = new Node();
 			long long addr = setnode(nnd);
 
-			nnd->n = ceil((N + 1) / 2.0) - s;
+			nnd->n = lfmin - s;
 			nd->n = N + 1 - nnd->n;
 			nnd->flag = nd->flag;	// 分裂节点位于同一层
 
@@ -232,28 +233,26 @@ namespace db {
 			for (int i = r + 1;i < len;i++) {
 				nd->k[i - 1] = nd->k[i];
 				nd->addr[i - 1 + s] = nd->addr[i + s];
-			} 
+			}
 			nd->n--;
 		}
 
 		// b传入要删除的节点 返回右边节点最小值(提供给上层修改)
 		int resize_delete_leaf(Node* a, Node* b, int k) {
 			bool direct = a->k[0] < b->k[0] ? true : false;
-			// direct=true则 a->b 否则是b<-a
 			direct_delete(b, k, true);
-			int min = ceil((N + 1) / 2.0); // 叶节点的最小的key数
-			int o = min - b->n;// 计算b需要插入的元素数
-			if (direct) { // a->b 
+			int la = a->n;
+			int lb = b->n;
+			int o = lfmin - lb;// 计算b需要插入的元素数
+			if (direct) { // a -> b 
 				// 123->45 == -4 == 123->5 == 12->35
-				for (int i = 0;i < b->n;i++) { // b原有值后移
-					b->k[min - 1 - i] = b->k[b->n - 1 - i];
-					b->addr[min - 1 - i] = b->addr[b->n - 1 - i];
+				for (int i = 0;i < lb;i++) {  // o ~ lb+o-1(lfmin-1) <- 0 ~ lb-1 ok
+					b->k[lb - 1 + o - i] = b->k[lb - 1 - i];
+					b->addr[lb - 1 + o - i] = b->addr[lb - 1 - i];
 				}
-				for (int i = 0;i < o;i++) { // a后移
-					int k = a->k[a->n - o + i];
-					long long v = a->addr[a->n - o + i];
-					b->k[i] = k;
-					b->addr[i] = v;
+				for (int i = 0;i < o;i++) { // 0 ~ o-1 <- la-1-o ~ la-1  ok
+					b->k[o - 1 - i] = a->k[la - 1 - i];
+					b->addr[o - 1 - i] = a->addr[la - 1 - i];
 				}
 				a->n -= o;
 				b->n += o;
@@ -261,13 +260,11 @@ namespace db {
 			}
 			else { //  b<-a
 				// 12->345 == -2 == 1->345 == 13->45
-				for (int i = 0;i < o;i++) { // a的元素添加到b上
-					int k = a->k[i];
-					long long v = a->addr[i];
-					b->k[b->n + i] = k;
-					b->addr[b->n + i] = v;
+				for (int i = 0;i < o;i++) { // a的元素添加到b上 lb~lb+o-1 <- 0~o-1 ok
+					b->k[lb + i] = a->k[i];
+					b->addr[lb + i] = a->addr[i];
 				}
-				for (int i = 0;i < a->n - o;i++) { // a内部填补空位
+				for (int i = 0;i < la - o;i++) { // a内部填补空位 0~la-o-1 <- o~la-1 ok
 					a->k[i] = a->k[i + o];
 					a->addr[i] = a->addr[i + o];
 				}
@@ -293,13 +290,14 @@ namespace db {
 			}
 			// x<-y
 			//  12<-3 123
-			int o = y->n;
-			for (int i = 0;i < o;i++) { // b原有值后移
-				x->k[x->n - i] = y->k[i];
-				x->addr[x->n - i] = y->addr[i];
+			int lx = x->n;
+			int ly = y->n;
+			for (int i = 0;i < ly;i++) { // y原有值后移 lx~lx+ly-1 ~ 0~ly-1 
+				x->k[lx + i] = y->k[i];
+				x->addr[lx + i] = y->addr[i];
 			}
-			x->n += o;
-			y->n =0;
+			x->n += ly;
+			y->n = 0;
 			x->addr[N] = y->addr[N];
 		}
 
@@ -308,45 +306,54 @@ namespace db {
 			bool direct = a->k[0] < b->k[0] ? true : false;
 			// b始终放要删除的 direct=true则 a->b 否则是b<-a
 			direct_delete(b, k, false);
-			int o = ceil((N + 1) / 2.0) - 1 - b->n;// 计算b需要插入的元素数/a失去的元素数
+			int la = a->n;
+			int lb = b->n;
+			int o = nlfmin - lb; // 计算b需要插入的元素数/a失去的元素数
 			if (direct) { // a->b
 				// 10 20 30 -> 40 50 == 10 20 30 -> 50
-				// 10 20 30 -> (NULL) 35 50 == 10 -> 20 35 50 (30是直接丢弃)
-				for (int i = 0;i < b->n;i++) { // b原有值后移
-					b->k[b->n + o - 1 - i] = b->k[b->n - 1 - i];
-					b->addr[b->n + o - i] = b->addr[b->n - i];
+				// 10 20 30 -> (NULL) 35 50 == 10 -> 30 35 50 (20是直接丢弃)
+				for (int i = 0;i < lb;i++) { // b原有值后移  o~lb+o-1 <- 0~lb-1
+					b->k[lb + o - 1 - i] = b->k[lb - 1 - i]; 
+					b->addr[lb + o - i] = b->addr[lb - i];
 				}
 				b->k[o - 1] = search_left(getnode(b->addr[0])); // 因为左边代表分支下最小的值
 				b->addr[o] = b->addr[0];
-				for (int i = 0;i < o - 1;i++) { // 移动key
-					b->k[o - 2 - i] = a->k[a->n - 2 - i];
+				for (int i = 0;i < o - 1;i++) { // 移动key      0~o-2 <- la-o+1~la-1
+					b->k[o - 2 - i] = a->k[la - 1 - i];
+					//b->k[i] = a->k[la-o+1+i];
 				}
-				for (int i = 0;i < o;i++) { // 移动地址
-					b->addr[o - 1 - i] = a->addr[a->n - i];
+				int res = a->k[la - o];
+				for (int i = 0;i < o;i++) { // 移动地址 
+					b->addr[o - 1 - i] = a->addr[la - i];
+					//b->addr[i] = a->addr[la-o+1+i];
 				}
 				a->n -= o;
 				b->n += o;
-				return search_left(getnode(b->addr[0]));
+				//return search_left(getnode(b->addr[0]));
+				return res;
 			}
 			else { //  b<-a
 				// 10 20 -> 30 40 50 == 10 ->30 40 50
-				// 10 25 (NULL) -> 30 40 50 == 10 25 40 ->  50  
-				b->k[b->n] = search_left(getnode(a->addr[0]));
-				for (int i = 0;i < o;i++) { // 移动地址
-					b->addr[b->n + 1 + i] = a->addr[i];
-				} 
-				for (int i = 0;i < o - 1;i++) { // 移动key
-					b->k[b->n + 1 + i] = a->k[i+1];
+				// 10 25 (NULL) -> 30 40 50 == 10 25 30 ->  50 丢弃(40)  
+				b->k[lb] = search_left(getnode(a->addr[0]));
+				for (int i = 0;i < o - 1;i++) { // 移动key lb+1~lb+o-1 <- 0~o-2 o-2
+					b->k[lb + 1 + i] = a->k[i];
 				}
-				for (int i = 0;i < a->n - o;i++) {
+				int res = a->k[o - 1];
+				for (int i = 0;i < o;i++) { // 移动地址  lb+1~lb+o <- 0~o-1 0-1
+					b->addr[lb+ 1 + i] = a->addr[i];
+				}
+				
+				for (int i = 0;i < la - o;i++) { //  0~la-o-1 <-  o~la-1
 					a->k[i] = a->k[o + i];
 				}
-				for (int i = 0;i < a->n - o + 1;i++) {
-					a->addr[i] = a->k[o + i + 1];
+				for (int i = 0;i < la - o + 1;i++) { // 0~la-o < o~la
+					a->addr[i] = a->addr[o + i];
 				}
 				a->n -= o;
 				b->n += o;
-				return search_left(getnode(a->addr[0]));
+				//return search_left(getnode(a->addr[0]));
+				return res;
 			}
 		}
 
@@ -366,15 +373,21 @@ namespace db {
 			//x<-y
 			// 1 2 -> 4 5 == 1 2 -> 5 和resize代码雷同 只是要全部移动走
 			// 1 2 3 (NULL)->5 ==  1235
-			x->k[x->n] = search_left(getnode(y->addr[0]));
-			for (int i = 0;i < y->n;i++) { // 移动地址
-				x->addr[x->n + 1 + i] = y->addr[i];
+			int lx = x->n;
+			int ly = y->n;
+			x->k[lx] = search_left(getnode(y->addr[0]));
+			for (int i = 0;i < ly;i++) { // 移动key
+				x->k[lx + 1 + i] = y->k[i];
 			}
-			for (int i = 0;i < y->n - 1;i++) { // 移动key
-				x->k[y->n + 1 + i] = y->k[i + 1];
+			for (int i = 0;i < ly+1;i++) { // 移动地址
+				x->addr[lx + 1 + i] = y->addr[i];
 			}
-			x->n += y->n;
+			x->n += ly+1;
 			y->n = 0;
+		}
+
+		void erase_node(Node* nd) {
+
 		}
 
 	public:
@@ -393,6 +406,8 @@ namespace db {
 			Node* nd = new Node();
 			nd->flag = 1;
 			root = setnode(nd);
+			lfmin = (int)ceil((N + 1) / 2.0);
+			nlfmin = lfmin - 1;
 		}
 
 		// 临时函数
@@ -404,7 +419,7 @@ namespace db {
 		}
 
 		long long search(int key) {
-			long long res = -1;
+			long long res = NULLADDR;
 
 			Node* p = getnode(root);
 			if (p->n == 0) return res;  // root节点可能为空
@@ -510,6 +525,117 @@ namespace db {
 				p = path.top();
 				path.pop();
 			} while (true);
+		}
+
+		bool delkey(int key) {
+			if (search(key) == NULLADDR) return false; // 如果没有找到key则返回没有找到
+
+			Node* ndroot = getnode(root);  // 再次搜索 不过要记录过程
+			Node* p = ndroot; // 当前节点
+
+			std::stack<Node*> path;
+			std::stack<int> poffset; // 还要记录走的是哪个子节点
+
+			do {
+				int r = search_index(p, key);
+				path.push(p);		// 当前节点入栈
+				poffset.push(r);    // 偏移入栈
+				p = getnode(p->addr[r]);
+			} while (p->flag != 0);
+
+			// 到达叶节点
+
+			if (p->n - 1 >= lfmin) { // 如果叶节点足够大则直接删除
+				direct_delete(p, key, true);
+				return true;
+			} 
+
+			Node* pv = path.top(); //当前节点父节点
+			int pov = poffset.top(); //getnode(pv->addr[pov])即当前节点
+
+			if (pv == ndroot) {
+				if (pv->addr[0] == NULLADDR) { 
+					// 如果只有一个叶节点，无视节点数量的限制
+					direct_delete(p, key, true);
+					if (p->n == 0) { // 擦除叶节点
+						erase_node(p);
+						pv->n = 0;
+					}
+					return true;
+				}
+				else if (pv->n==1) { 
+					int o = lfmin - p->n; // leaf需要插入的key数
+					int sign = 1 - pov; // pov = 1 sign = 0 || pov = 0 sign = 1 || sign < 0
+					Node* other = getnode(pv->addr[sign]);
+					if (other->n - o < lfmin) {
+						// 如果另一个节点key不够 则合并 并挂在右边 保持只有root的左节点才能为NULL
+						merge_delete_leaf(other, p, key); // 始终合并到左边节点
+						erase_node(getnode(pv->addr[1]));
+						pv->addr[1] = pv->addr[0];
+						pv->addr[0] = NULLADDR;
+						pv->k[0] = getnode(pv->addr[1])->k[0];
+						return true;
+					}
+				}
+			} 
+
+			// 先处理叶节点 估计要有重复代码了 
+
+			int o = lfmin - p->n;  
+			int sign = pov == 0 ? 1 : pov - 1; //记录相邻节点的位置
+			int tp = pov == 0 ? 0 : pov - 1;  // 记录上一层要删除key的位置
+			Node* other = getnode(pv->addr[sign]);
+			if (other->n - o >= lfmin) { // resize即可，不会删除节点，比较安全
+				int ch = resize_delete_leaf(other, p, key);
+				pv->k[tp] = ch;
+				return true;
+			}
+			else { // merge
+				merge_delete_leaf(other, p, key);
+				erase_node(p);
+				if (pv == ndroot || pv->n - 1 >= nlfmin) { // 上一层是root则一定能直接删除 因为root的特殊情况已经处理
+					direct_delete(pv, pv->k[tp], false);
+					return true;
+				}
+			}
+			// 否则交给循环继续删除
+			do { 
+				int curk = tp; // curk变成这一层需要删除key的位置
+				p = path.top(); // 当前节点上移
+				path.pop();
+				poffset.pop();
+
+				int o = nlfmin - p->n;
+				pv = path.top();
+				pov = poffset.top();
+
+				sign = pov == 0 ? 1 : pov - 1; // 相邻节点位置
+				tp = pov == 0 ? 0 : pov - 1; // 上一层可能要删除的位置
+				Node* other = getnode(pv->addr[sign]);
+				if (other->n - o >= nlfmin) { // resize即可，不会删除节点，比较安全
+					int ch = resize_delete_nonleaf(other, p, p->k[curk]);
+					pv->k[tp] = ch;
+					return true;
+				}
+				else { // merge
+					merge_delete_nonleaf(other, p, p->k[curk]);
+					erase_node(p);
+					if ((pv == ndroot&&pv->n>1) || pv->n - 1 >= nlfmin) { // 上一层是root至少为1 其它至少为nlfmin
+						direct_delete(pv, pv->k[tp], false);
+						return true;
+					}
+					else if (pv == ndroot && pv->n == 1) { // 如果root节点要删除 重新设置root
+						root = ndroot->addr[0];
+						erase_node(ndroot);
+						return true;
+					}
+					
+					// 否则循环继续删除
+				}
+
+			} while (true);
+
+			return true;
 		}
 
 		void print_tree() {

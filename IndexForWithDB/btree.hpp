@@ -8,7 +8,7 @@
 #include <vector>
 #include <string>
 
-constexpr auto N = 4;		  // 节点能放下key的数量
+constexpr auto N = 5;		  // 节点能放下key的数量
 constexpr auto NULLADDR = 0;  // NULL在数据库地址中的表示
 
 namespace db {
@@ -313,7 +313,7 @@ namespace db {
 				// 10 20 30 -> 40 50 == 10 20 30 -> 50
 				// 10 20 30 -> (NULL) 35 50 == 10 -> 30 35 50 (20是直接丢弃)
 				for (int i = 0;i < lb;i++) { // b原有值后移  o~lb+o-1 <- 0~lb-1
-					b->k[lb + o - 1 - i] = b->k[lb - 1 - i]; 
+					b->k[lb + o - 1 - i] = b->k[lb - 1 - i];
 					b->addr[lb + o - i] = b->addr[lb - i];
 				}
 				b->k[o - 1] = search_left(getnode(b->addr[0])); // 因为左边代表分支下最小的值
@@ -341,9 +341,9 @@ namespace db {
 				}
 				int res = a->k[o - 1];
 				for (int i = 0;i < o;i++) { // 移动地址  lb+1~lb+o <- 0~o-1 0-1
-					b->addr[lb+ 1 + i] = a->addr[i];
+					b->addr[lb + 1 + i] = a->addr[i];
 				}
-				
+
 				for (int i = 0;i < la - o;i++) { //  0~la-o-1 <-  o~la-1
 					a->k[i] = a->k[o + i];
 				}
@@ -379,10 +379,10 @@ namespace db {
 			for (int i = 0;i < ly;i++) { // 移动key
 				x->k[lx + 1 + i] = y->k[i];
 			}
-			for (int i = 0;i < ly+1;i++) { // 移动地址
+			for (int i = 0;i < ly + 1;i++) { // 移动地址
 				x->addr[lx + 1 + i] = y->addr[i];
 			}
-			x->n += ly+1;
+			x->n += ly + 1;
 			y->n = 0;
 		}
 
@@ -406,14 +406,18 @@ namespace db {
 			Node* nd = new Node();
 			nd->flag = 1;
 			root = setnode(nd);
-			lfmin = (int)ceil((N + 1) / 2.0);
+			lfmin = (int)((N + 1) / 2);
+			/*
+			必须取整 例如N=4 如果是进1则叶节点至少有3个key 那么两个都是3的节点删除一个值变成 2 3 就没法merge或resize
+			而取整 两个为2的key就可以处理
+			*/
 			nlfmin = lfmin - 1;
 		}
 
 		// 临时函数
 		void create(int* arr, int len) {
 			for (int i = 0;i < len;i++) {
-				insert(arr[i], i);
+				insert(arr[i], i + 1);
 				//print_tree();
 			}
 		}
@@ -548,13 +552,13 @@ namespace db {
 			if (p->n - 1 >= lfmin) { // 如果叶节点足够大则直接删除
 				direct_delete(p, key, true);
 				return true;
-			} 
+			}
 
 			Node* pv = path.top(); //当前节点父节点
 			int pov = poffset.top(); //getnode(pv->addr[pov])即当前节点
 
 			if (pv == ndroot) {
-				if (pv->addr[0] == NULLADDR) { 
+				if (pv->addr[0] == NULLADDR) {
 					// 如果只有一个叶节点，无视节点数量的限制
 					direct_delete(p, key, true);
 					if (p->n == 0) { // 擦除叶节点
@@ -563,8 +567,8 @@ namespace db {
 					}
 					return true;
 				}
-				else if (pv->n==1) { 
-					int o = lfmin - p->n; // leaf需要插入的key数
+				else if (pv->n == 1) {
+					int o = lfmin - p->n + 1; // leaf需要插入的key数
 					int sign = 1 - pov; // pov = 1 sign = 0 || pov = 0 sign = 1 || sign < 0
 					Node* other = getnode(pv->addr[sign]);
 					if (other->n - o < lfmin) {
@@ -577,11 +581,11 @@ namespace db {
 						return true;
 					}
 				}
-			} 
+			}
 
 			// 先处理叶节点 估计要有重复代码了 
 
-			int o = lfmin - p->n;  
+			int o = lfmin - p->n + 1;  // 还未删除节点p->n数量没减少
 			int sign = pov == 0 ? 1 : pov - 1; //记录相邻节点的位置
 			int tp = pov == 0 ? 0 : pov - 1;  // 记录上一层要删除key的位置
 			Node* other = getnode(pv->addr[sign]);
@@ -599,19 +603,19 @@ namespace db {
 				}
 			}
 			// 否则交给循环继续删除
-			do { 
+			do {
 				int curk = tp; // curk变成这一层需要删除key的位置
 				p = path.top(); // 当前节点上移
 				path.pop();
 				poffset.pop();
 
-				int o = nlfmin - p->n;
+				o = nlfmin + 1 - p->n; // 这时候还没有删除节点 p->n还是正常的 要额外-1
 				pv = path.top();
 				pov = poffset.top();
 
 				sign = pov == 0 ? 1 : pov - 1; // 相邻节点位置
 				tp = pov == 0 ? 0 : pov - 1; // 上一层可能要删除的位置
-				Node* other = getnode(pv->addr[sign]);
+				other = getnode(pv->addr[sign]);
 				if (other->n - o >= nlfmin) { // resize即可，不会删除节点，比较安全
 					int ch = resize_delete_nonleaf(other, p, p->k[curk]);
 					pv->k[tp] = ch;
@@ -620,7 +624,7 @@ namespace db {
 				else { // merge
 					merge_delete_nonleaf(other, p, p->k[curk]);
 					erase_node(p);
-					if ((pv == ndroot&&pv->n>1) || pv->n - 1 >= nlfmin) { // 上一层是root至少为1 其它至少为nlfmin
+					if ((pv == ndroot && pv->n > 1) || pv->n - 1 >= nlfmin) { // 上一层是root至少为1 其它至少为nlfmin
 						direct_delete(pv, pv->k[tp], false);
 						return true;
 					}
@@ -629,7 +633,7 @@ namespace db {
 						erase_node(ndroot);
 						return true;
 					}
-					
+
 					// 否则循环继续删除
 				}
 

@@ -38,7 +38,8 @@ int main()
 	tr->create(a, 500);
 	tr->print_tree();
 	for (int i = 0;i < 500;i++) {
-		if ((i + 1) % 100 == 0) tr->print_tree(); //99 199 .. 499
+		if ((i + 1) % 100 == 0) 
+			tr->print_tree(); //99 199 .. 499
 		cout << a[i] << endl;
 
 		//		if (a[i] == 109) {
@@ -47,6 +48,7 @@ int main()
 		tr->delkey(a[i]);
 		//if (i > 180) tr->print_tree();
 	}
+	tr->insert(10,1111);
 	//	tr->delkey(42);
 	//	tr->delkey(43);
 	//	tr->print_tree();

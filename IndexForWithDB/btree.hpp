@@ -86,11 +86,12 @@ namespace db {
 		// TODO 通过Node的hold方法获得地址？？
 		long long setnode(Node* nd) {
 			long long addr = sid;
-			sid++;
+			sid++; // 这里只是模拟的数据库地址，实际上并不用管
 
 			int key = 0;
 			if (ftb.size() != 0) {			// 如果有空闲空间 则从set中获取偏移
-				key = *(ftb.begin());		// ***可能有问题因为没尝试过***
+				//key = ftb.lower_bound;
+				key = *(ftb.begin());		// todo 没有进行排序
 				ftb.erase(key);
 				objlst[key] = nd;
 			}
@@ -386,8 +387,12 @@ namespace db {
 			y->n = 0;
 		}
 
-		void erase_node(Node* nd) {
-
+		void erase_node(long long addr) { // 清楚addr对应的指针
+			Node* nd = getnode(addr);
+			delete nd;
+			int i = stb[addr];
+			objlst[i] = NULL;
+			ftb.insert(i);
 		}
 
 	public:
@@ -562,7 +567,7 @@ namespace db {
 					// 如果只有一个叶节点，无视节点数量的限制
 					direct_delete(p, key, true);
 					if (p->n == 0) { // 擦除叶节点
-						erase_node(p);
+						erase_node(pv->addr[1]);
 						pv->n = 0;
 					}
 					return true;
@@ -574,7 +579,7 @@ namespace db {
 					if (other->n - o < lfmin) {
 						// 如果另一个节点key不够 则合并 并挂在右边 保持只有root的左节点才能为NULL
 						merge_delete_leaf(other, p, key); // 始终合并到左边节点
-						erase_node(getnode(pv->addr[1]));
+						erase_node(pv->addr[1]);
 						pv->addr[1] = pv->addr[0];
 						pv->addr[0] = NULLADDR;
 						pv->k[0] = getnode(pv->addr[1])->k[0];
@@ -595,8 +600,9 @@ namespace db {
 				return true;
 			}
 			else { // merge
+				long long eaddr = pv->addr[tp + 1];
 				merge_delete_leaf(other, p, key);
-				erase_node(p);
+				erase_node(eaddr);
 				if (pv == ndroot || pv->n - 1 >= nlfmin) { // 上一层是root则一定能直接删除 因为root的特殊情况已经处理
 					direct_delete(pv, pv->k[tp], false);
 					return true;
@@ -622,15 +628,17 @@ namespace db {
 					return true;
 				}
 				else { // merge
+					long long eaddr = pv->addr[tp + 1];
 					merge_delete_nonleaf(other, p, p->k[curk]);
-					erase_node(p);
+					erase_node(eaddr);
 					if ((pv == ndroot && pv->n > 1) || pv->n - 1 >= nlfmin) { // 上一层是root至少为1 其它至少为nlfmin
 						direct_delete(pv, pv->k[tp], false);
 						return true;
 					}
 					else if (pv == ndroot && pv->n == 1) { // 如果root节点要删除 重新设置root
+						long long eaddr = root;
 						root = ndroot->addr[0];
-						erase_node(ndroot);
+						erase_node(eaddr);
 						return true;
 					}
 

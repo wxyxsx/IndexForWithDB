@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <stack>
 #include <unordered_map>
-#include <unordered_set>
+#include <set>
 #include <vector>
 #include <string>
 
@@ -39,6 +39,7 @@ namespace db {
 			flag = 0;
 		}
 
+
 		// Node(virtual_page &&p) {}
 	};
 
@@ -47,7 +48,7 @@ namespace db {
 	private:
 		std::vector<Node*> objlst;				// 存放所有节点的指针
 		std::unordered_map<long long, int> stb; // 根据数据库地址检索在objlst中的偏移 
-		std::unordered_set<int> ftb;			// 存放所有objlst中空闲的偏移 set中数据自动排序 便于回收空间
+		std::set<int> ftb;			// 存放所有objlst中空闲的偏移 set中数据自动排序 便于回收空间
 
 		/*
 		keeper hold() loosen()
@@ -73,7 +74,13 @@ namespace db {
 		long long split_insert(Node* nd, int k, long long v, bool if_leaf);
 		void print_space(int level);
 		void print_space(int level);
-		void print_nonleaf(Node* nd, int level)
+		void print_nonleaf(Node* nd, int level);
+		void direct_delete(Node* nd, int k, bool if_leaf);
+		int resize_delete_leaf(Node* a, Node* b, int k);
+		void merge_delete_leaf(Node* a, Node* b, int k);
+		int resize_delete_nonleaf(Node* a, Node* b, int k);
+		void merge_delete_nonleaf(Node* a, Node* b, int k);
+		void erase_node(long long addr);
 		*/
 
 		// 根据数据库地址获取节点指针 地址为空则返回NULL
@@ -90,7 +97,6 @@ namespace db {
 
 			int key = 0;
 			if (ftb.size() != 0) {			// 如果有空闲空间 则从set中获取偏移
-				//key = ftb.lower_bound;
 				key = *(ftb.begin());		// todo 没有进行排序
 				ftb.erase(key);
 				objlst[key] = nd;
@@ -391,6 +397,7 @@ namespace db {
 			Node* nd = getnode(addr);
 			delete nd;
 			int i = stb[addr];
+			stb.erase(addr);
 			objlst[i] = NULL;
 			ftb.insert(i);
 		}
@@ -402,6 +409,7 @@ namespace db {
 		void create(int* arr, int len);
 		long long search(int key);
 		void insert(int key, long long value);
+		bool delkey(int key);
 		void print_tree();
 		void print_leaf();
 		*/
@@ -658,6 +666,11 @@ namespace db {
 
 		void print_leaf() {
 			Node* p = getnode(root);
+
+			if (p->addr[0] == NULLADDR) {
+				print_leaf(getnode(p->addr[1]));
+				return;
+			}
 
 			while (p->flag != 0) p = getnode(p->addr[0]);
 

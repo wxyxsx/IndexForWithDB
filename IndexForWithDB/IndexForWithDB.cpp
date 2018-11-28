@@ -61,17 +61,31 @@ int main()
 		"come","our","they","agreement","no","and","think","him","came","comments","what","white","called","january","formed","out",
 		"is","long","outside","use","already","10","britain","so","groundwork","monday","during","possible","off","among","continue",
 		"backbencher","she","corbyn","borders","ambitious","brussels","would","minister","absolute" };
+	vector<string> data;
 	for (int i = 0;i < 334;i++) {
-		//cout << teststr[i] << endl;
-		//string t = "another";
-		//if (teststr[i] == t) {
-		//	tr->print_tree();
-		//}
-		tr->insert(teststr[i], i + 1);
-		//tr->print_tree();
-		
+		data.push_back(teststr[i]);
 	}
+	random_shuffle(data.begin(), data.end());
+	int v = 1;
+	// todo insert加入校验以及截断
+	for (vector<string>::iterator it = data.begin();it != data.end();++it) {
+		tr->insert(*it, v);
+		v++;
+	}
+	//for (int i = 0;i < 334;i++) {
+	//	//cout << teststr[i] << endl;
+	//	//string t = "another";
+	//	//if (teststr[i] == t) {
+	//	//	tr->print_tree();
+	//	//}
+	//	tr->insert(teststr[i], i + 1);
+	//	//tr->print_tree();
+	//	
+	//}
 	tr->print_tree();
+	tr->print_leaf();
+	string s = "irish";
+	cout << tr->search(s) << endl;
 	//string s1 = "abc~";
 	//string s2 = "abcz";
 	//bool a = s1>s2;

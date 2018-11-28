@@ -9,7 +9,7 @@
 #include <string>
 
 constexpr int BUFFSIZE = 100; // 假设节点大小确定
-constexpr int N = (BUFFSIZE-16)/12;		  // 节点能放下key的数量 这里为7
+constexpr int N = (BUFFSIZE - 16) / 12;		  // 节点能放下key的数量 这里为7
 constexpr auto NULLADDR = 0;  // NULL在数据库地址中的表示
 constexpr int MAXLEN = 20; // 字符串最长不超过20
 constexpr int HALFLEN = (int)(BUFFSIZE - 16) / 2;
@@ -68,15 +68,15 @@ namespace db {
 			int r = search(key);
 			int half = (int)(BUFFSIZE - 16) / 2;
 			int cur = 0;
-			for (int i = 0;i <r;i++) {
+			for (int i = 0;i < r;i++) {
 				cur += 9 + k[i].length();
-				if(cur>half) return n - i; // n + 1 - (i + 1); 总数 - 保留的数目
+				if (cur > half) return n - i; // n + 1 - (i + 1); 总数 - 保留的数目
 			}
 			cur += 9 + key.length();
 			if (cur > half) return n - r;
 			for (int i = r;i < n;i++) {
 				cur += 9 + k[i].length();
-				if (cur > half) return n-1 - i; // 还要多给一个key 
+				if (cur > half) return n - 1 - i; // 还要多给一个key 
 			}
 			return 0;
 		}
@@ -115,10 +115,10 @@ namespace db {
 			return o;
 		}
 
-		int resize(bool direct,int len) {
+		int resize(bool direct, int len) {
 			int hf = (int)(BUFFSIZE - 16) / 2; // half
-			int remain = size()-16; // 节点剩余大小
-			int cur = len+9; // 新节点加入的大小
+			int remain = size() - 16; // 节点剩余大小
+			int cur = len + 9; // 新节点加入的大小
 			int o = 0;
 			for (int i = 0;i < n;i++) {
 				if (cur >= hf || remain < hf) { // 新节点不能加入超过一半 旧节点不能减少超过一半
@@ -136,7 +136,7 @@ namespace db {
 					remain -= t;
 				}
 			}
-			return o+1;
+			return o + 1;
 		}
 
 	};
@@ -159,7 +159,7 @@ namespace db {
 
 		// 数据库地址 -> 节点指针 可能返回NULL
 		Node* getnode(long long addr) {
-			if (addr == NULLADDR) return NULL; 
+			if (addr == NULLADDR) return NULL;
 			return objlst[stb[addr]];
 		}
 
@@ -169,7 +169,7 @@ namespace db {
 
 			int key = 0;
 			if (ftb.size() != 0) {			// 如果有空闲空间 则从set中获取偏移
-				key = *(ftb.begin());		
+				key = *(ftb.begin());
 				ftb.erase(key);
 				objlst[key] = nd;
 			}
@@ -197,7 +197,7 @@ namespace db {
 
 		// 查找k在节点原数组中的位置 从大往小查找
 		int search_index(Node* nd, std::string k) {
-			int r = 0; 
+			int r = 0;
 			int len = nd->n;
 			for (int i = len;i > 0;i--) {
 				if (k >= nd->k[i - 1]) {
@@ -223,7 +223,7 @@ namespace db {
 			int len = nd->n;
 
 			nd->k.resize(len + 1);
-			if(if_leaf) nd->a.resize(len + 1);
+			if (if_leaf) nd->a.resize(len + 1);
 			else nd->a.resize(len + 2);
 
 			for (int i = nd->n;i > r;i--) {
@@ -254,7 +254,7 @@ namespace db {
 			nnd->k.resize(nnd->n);
 			nnd->a.resize(nnd->n + s);
 			int ln = nd->n;
-			nd->n = ln +1 - nnd->n;
+			nd->n = ln + 1 - nnd->n;
 			nnd->flag = nd->flag;	// 分裂节点位于同一层
 
 			for (int i = ln;i > r;i--)				// 比key大的右移一位
@@ -403,7 +403,7 @@ namespace db {
 		}
 
 		// 关键在于正确插入新增的键值 以及向上返回的键值
-		std::string resize_delete_nonleaf(Node* a, Node* b, int k) {
+		std::string resize_delete_nonleaf(Node* a, Node* b) {
 			bool direct = a->k[0] < b->k[0] ? true : false;
 			// b始终放要删除的 direct=true则 a->b 否则是b<-a
 			int la = a->n;
@@ -512,7 +512,7 @@ namespace db {
 			x->n += ly + 1;
 			y->n = 0;
 			return true;
-		}				
+		}
 
 		void erase_node(long long addr) { // 清楚addr对应的指针
 			Node* nd = getnode(addr);
@@ -596,7 +596,7 @@ namespace db {
 			long long v = split_insert(p, key, value, true);
 			std::string k = getnode(v)->k[0];   // 叶节点提供给上一层的key,value
 
-			
+
 
 			// 进入通用的循环 将k,v插入p中
 			do {
@@ -624,7 +624,7 @@ namespace db {
 
 				v = split_insert(p, k, v, false);
 				k = search_left(getnode(v));
-				
+
 
 				if (p == ndroot) { // 如果要分裂的是root节点 需要新建root节点
 					Node* nnd = new Node();
@@ -703,11 +703,12 @@ namespace db {
 					direct_delete(pv, pv->k[tp], false);
 					return true;
 				}
-			} else { // resize即可，不会删除节点，比较安全
+			}
+			else { // resize即可，不会删除节点，比较安全
 				pv->k[tp] = resize_delete_leaf(other, p);
 				return true;
 			}
-		
+
 			// 否则交给循环继续删除
 			do {
 				int curk = tp; // curk变成这一层需要删除key的位置
@@ -735,11 +736,12 @@ namespace db {
 						erase_node(eaddr);
 						return true;
 					}
-				} else { // resize即可，不会删除节点，比较安全
+				}
+				else { // resize即可，不会删除节点，比较安全
 					pv->k[tp] = resize_delete_nonleaf(other, p);
 					return true;
 				}
-		
+
 
 			} while (true);
 

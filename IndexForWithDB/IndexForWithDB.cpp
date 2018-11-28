@@ -9,7 +9,7 @@ using namespace std;
 
 int main()
 {
-	//db::btree* tr = new db::btree();
+	db::btree* tr = new db::btree();
 	//vector<int> arr;
 	//for (int i = 1;i < 501;i++) arr.push_back(i);
 	//random_shuffle(arr.begin(), arr.end());
@@ -61,10 +61,21 @@ int main()
 		"come","our","they","agreement","no","and","think","him","came","comments","what","white","called","january","formed","out",
 		"is","long","outside","use","already","10","britain","so","groundwork","monday","during","possible","off","among","continue",
 		"backbencher","she","corbyn","borders","ambitious","brussels","would","minister","absolute" };
-	string s1 = "abc~";
-	string s2 = "abcz";
-	bool a = s1>s2;
-	cout << s1 << ' ' << s2 << endl;
-	cout << a << endl;
+	for (int i = 0;i < 334;i++) {
+		//cout << teststr[i] << endl;
+		//string t = "another";
+		//if (teststr[i] == t) {
+		//	tr->print_tree();
+		//}
+		tr->insert(teststr[i], i + 1);
+		//tr->print_tree();
+		
+	}
+	tr->print_tree();
+	//string s1 = "abc~";
+	//string s2 = "abcz";
+	//bool a = s1>s2;
+	//cout << s1 << ' ' << s2 << endl;
+	//cout << a << endl;
 	return 0;
 }

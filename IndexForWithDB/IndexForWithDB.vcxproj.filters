@@ -21,9 +21,6 @@
     <ClInclude Include="btree.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="strtree.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

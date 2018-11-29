@@ -82,9 +82,9 @@ namespace db {
 		}
 
 		int search(std::string key) {
-			int r = 0;
-			for (int i = n;i > 0;i--) {
-				if (key >= k[i - 1]) {
+			int r = n;
+			for (int i = 0;i <n;i++) {
+				if (key <= k[i]) {
 					r = i;
 					break;
 				}
@@ -99,6 +99,16 @@ namespace db {
 			return cur >= hf;
 		}
 
+		bool half(std::string key) {
+			int hf = (int)(BUFFSIZE - 16) / 2;
+			int cur = size() - 16;
+			cur -= key.length() - 9;
+			return cur >= hf;
+		}
+
+		/*
+		保证a分离字符串以后占用超过一半
+		*/
 		int resize(bool direct) {
 			int hf = (int)(BUFFSIZE - 16) / 2;
 			int cur = size() - 16;
@@ -108,7 +118,7 @@ namespace db {
 				else cur -= k[i].length() + 9;
 
 				if (cur < hf) {
-					o = i;
+					o = i;// break的时候 循环了i+1次数 但此时已经不符合条件 所以用上一次i
 					break;
 				}
 			}
@@ -122,21 +132,23 @@ namespace db {
 			int o = 0;
 			for (int i = 0;i < n;i++) {
 				if (cur >= hf || remain < hf) { // 新节点不能加入超过一半 旧节点不能减少超过一半
-					o = i;
+					o = i;  
 					break;
 				}
+				int t;
 				if (direct) {
-					int t = k[n - 1 - i].length() + 9; // 从大到小
-					cur += t;
-					remain -= t;
+					t = k[n - 1 - i].length() + 9; // 从大到小
 				}
 				else {
-					int t = k[i].length() + 9;
-					cur += t;
-					remain -= t;
+					t = k[i].length() + 9;	
 				}
+				cur += t;
+				remain -= t;
 			}
-			return o + 1;
+			return o;
+			// i放在开头是循环的次数
+			// 循环1次后break，则表示只能移入一个节点
+			// 循环2次后break，证明只能循环1次是符合要求的，节点损失2个key
 		}
 
 	};
@@ -197,10 +209,9 @@ namespace db {
 
 		// 查找k在节点原数组中的位置 从大往小查找
 		int search_index(Node* nd, std::string k) {
-			int r = 0;
-			int len = nd->n;
-			for (int i = len;i > 0;i--) {
-				if (k >= nd->k[i - 1]) {
+			int r = nd->n; // 默认指向最右端
+			for (int i = 0;i < nd->n;i++) {
+				if (k < nd->k[i]) {
 					r = i;
 					break;
 				}
@@ -337,7 +348,8 @@ namespace db {
 			int la = a->n;
 			int lb = b->n;
 
-			int o = a->resize(direct);
+			int o = a->resize(direct); 
+			// b需要插入的元素数目
 			b->k.resize(lb + o);
 			b->a.resize(lb + o);
 			if (direct) { // a -> b 
@@ -361,8 +373,6 @@ namespace db {
 					a->k[i] = a->k[i + o];
 					a->a[i] = a->a[i + o];
 				}
-				a->n -= o;
-				b->n += o;
 			}
 			a->n -= o;
 			b->n += o;
@@ -409,8 +419,8 @@ namespace db {
 			int la = a->n;
 			int lb = b->n;
 
-			int hf = (int)(BUFFSIZE - 16) / 2;
-			int cur = b->size();
+			//int hf = (int)(BUFFSIZE - 16) / 2;
+			//int cur = b->size();
 			int o = 0;
 			std::string tp;
 
@@ -418,7 +428,7 @@ namespace db {
 				// 10 20 30 -> 40 50 == 10 20 30 -> 50
 				// 10 20 30 -> (NULL) 35 50 == 10 -> 30 35 50 (20是直接丢弃)
 				tp = search_left(getnode(b->a[0]));
-				o = a->resize(true, tp.length());
+				o = a->resize(direct, tp.length());
 
 				b->k.resize(lb + o);
 				b->a.resize(lb + o + 1);
@@ -449,7 +459,7 @@ namespace db {
 			}
 			else { //  b<-a
 				tp = search_left(getnode(a->a[0]));
-				o = a->resize(false, tp.length());
+				o = a->resize(direct, tp.length());
 
 				b->k.resize(lb + o);
 				b->a.resize(lb + o + 1);
@@ -539,7 +549,7 @@ namespace db {
 			if (p->n == 0) return res;  // root节点可能为空
 
 			while (p->flag != 1) {		// 如果p不是叶节点，继续向下找
-				int r = p->search(key);
+				int r = search_index(p, key);
 				p = getnode(p->a[r]);
 			}
 
@@ -654,7 +664,7 @@ namespace db {
 			std::stack<int> poffset; // 还要记录走的是哪个子节点
 
 			do {
-				int r = p->search(key);
+				int r = search_index(p,key);
 				path.push(p);		// 当前节点入栈
 				poffset.push(r);    // 偏移入栈
 				p = getnode(p->a[r]);
@@ -671,7 +681,7 @@ namespace db {
 				if (pv->a[0] == NULLADDR) {
 					// 如果只有一个叶节点，无视节点数量的限制
 					if (p->n == 0) { // 擦除叶节点
-						erase_node(pv->a[1]);
+						//erase_node(pv->a[1]);
 						pv->n = 0;
 					}
 					return true;
@@ -682,7 +692,7 @@ namespace db {
 					if (merge_delete_leaf(other, p)) {
 						// 如果另一个节点key不够 则合并 并挂在右边 保持只有root的左节点才能为NULL
 						// 始终合并到左边节点
-						erase_node(pv->a[1]);
+						//erase_node(pv->a[1]);
 						pv->a[1] = pv->a[0];
 						pv->a[0] = NULLADDR;
 						pv->k[0] = getnode(pv->a[1])->k[0];
@@ -698,8 +708,8 @@ namespace db {
 			Node* other = getnode(pv->a[sign]);
 			if (merge_delete_leaf(other, p)) {
 				long long eaddr = pv->a[tp + 1];
-				erase_node(eaddr);
-				if (pv == ndroot || pv->size() - pv->k[tp].length() - 9 >= HALFLEN) { // 上一层是root则一定能直接删除 因为root的特殊情况已经处理
+				//erase_node(eaddr);
+				if (pv == ndroot || pv->half(pv->k[tp])) { // 上一层是root则一定能直接删除 因为root的特殊情况已经处理
 					direct_delete(pv, pv->k[tp], false);
 					return true;
 				}
@@ -725,15 +735,15 @@ namespace db {
 				direct_delete(p, p->k[curk], false);
 				if (merge_delete_nonleaf(other, p)) {
 					long long eaddr = pv->a[tp + 1];
-					erase_node(eaddr);
-					if ((pv == ndroot && pv->n > 1) || pv->size() - pv->k[tp].length() - 9 >= HALFLEN) { // 上一层是root至少为1 其它至少为nlfmin
+					//erase_node(eaddr);
+					if ((pv == ndroot && pv->n > 1) || pv->half(pv->k[tp])) { // 上一层是root至少为1 其它至少为nlfmin
 						direct_delete(pv, pv->k[tp], false);
 						return true;
 					}
 					else if (pv == ndroot && pv->n == 1) { // 如果root节点要删除 重新设置root
 						long long eaddr = root;
 						root = ndroot->a[0];
-						erase_node(eaddr);
+						//erase_node(eaddr);
 						return true;
 					}
 				}

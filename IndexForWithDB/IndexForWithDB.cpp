@@ -10,32 +10,6 @@ using namespace std;
 int main()
 {
 	db::btree* tr = new db::btree();
-	//vector<int> arr;
-	//for (int i = 1;i < 501;i++) arr.push_back(i);
-	//random_shuffle(arr.begin(), arr.end());
-	//int v = 1;
-	//for (vector<int>::iterator it = arr.begin();it != arr.end();++it) {
-	//	tr->insert(*it, v);
-	//	v++;
-	//}
-	//tr->print_tree();
-	//random_shuffle(arr.begin(), arr.end());
-	//v = 1;
-	//for (vector<int>::iterator it = arr.begin();it != arr.end();++it) {
-	//	tr->delkey(*it);
-	//	v++;
-	//	if (v % 100 == 0) {
-	//		tr->print_tree();
-	//		tr->print_leaf();
-	//	}
-	//}
-	//random_shuffle(arr.begin(), arr.end());
-	//v = 1;
-	//for (vector<int>::iterator it = arr.begin();it != arr.end();++it) {
-	//	tr->insert(*it, v);
-	//	v++;
-	//}
-	//tr->print_tree();
 	string teststr[334] = { "bbcs","clear","sides","deal","view","delivered","worse","reporters","have","into",
 		"border","time","joint","the","thing","brexiteers","policy","might","prominent","proposals","there","regaining",
 		"however","that","street","able","britains","end","negotiate","period","deals","result","another","house:","working",
@@ -72,24 +46,26 @@ int main()
 		tr->insert(*it, v);
 		v++;
 	}
-	//for (int i = 0;i < 334;i++) {
-	//	//cout << teststr[i] << endl;
-	//	//string t = "another";
-	//	//if (teststr[i] == t) {
-	//	//	tr->print_tree();
-	//	//}
-	//	tr->insert(teststr[i], i + 1);
-	//	//tr->print_tree();
-	//	
-	//}
-	tr->print_tree();
-	tr->print_leaf();
-	string s = "irish";
-	cout << tr->search(s) << endl;
-	//string s1 = "abc~";
-	//string s2 = "abcz";
-	//bool a = s1>s2;
-	//cout << s1 << ' ' << s2 << endl;
-	//cout << a << endl;
+	//tr->print_tree();
+	//tr->print_leaf();
+	random_shuffle(data.begin(), data.end());
+	v = 1;
+	for (vector<string>::iterator it = data.begin();it != data.end();++it) {
+		cout << *it << v << endl;
+//		if (v % 50 == 0) {
+//			tr->print_tree();
+//			tr->print_leaf();
+////			cout << endl;
+//		}
+		tr->delkey(*it);
+		v++;
+		if (v > 300) {
+			tr->print_tree();
+			//tr->print_leaf();
+			//break;
+		}
+	}
+	
+
 	return 0;
 }

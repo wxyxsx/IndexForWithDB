@@ -159,7 +159,7 @@ namespace db {
 			return 0;
 		}
 
-		bool half(){
+		bool half() {
 			int cur = strsize();
 			return cur >= HALFSTR;
 		}
@@ -330,7 +330,7 @@ namespace db {
 			for (int i = r - 1;i > nd->n - 1;i--)
 				span_insert(nd, nnd, nd->k[i], nd->a[i + s], i);
 
-			if (s==0) {
+			if (s == 0) {
 				nnd->next = nd->next;
 				nd->next = addr;
 			}
@@ -362,7 +362,7 @@ namespace db {
 			nd->resize();
 		}
 
-		T resize_delete_leaf(Node<T>* a, Node<T>* b) { 
+		T resize_delete_leaf(Node<T>* a, Node<T>* b) {
 			bool direct = a->k[0] < b->k[0] ? true : false;
 			int la = a->n;
 			int lb = b->n;
@@ -371,22 +371,22 @@ namespace db {
 			b->n += o;
 			b->resize();
 
-			if (direct) { 
-				for (int i = 0;i < lb;i++) { 
+			if (direct) {
+				for (int i = 0;i < lb;i++) {
 					b->k[lb - 1 + o - i] = b->k[lb - 1 - i];
 					b->a[lb - 1 + o - i] = b->a[lb - 1 - i];
 				}
-				for (int i = 0;i < o;i++) { 
+				for (int i = 0;i < o;i++) {
 					b->k[o - 1 - i] = a->k[la - 1 - i];
 					b->a[o - 1 - i] = a->a[la - 1 - i];
 				}
 			}
 			else {
-				for (int i = 0;i < o;i++) { 
+				for (int i = 0;i < o;i++) {
 					b->k[lb + i] = a->k[i];
 					b->a[lb + i] = a->a[i];
 				}
-				for (int i = 0;i < la - o;i++) { 
+				for (int i = 0;i < la - o;i++) {
 					a->k[i] = a->k[i + o];
 					a->a[i] = a->a[i + o];
 				}
@@ -401,31 +401,31 @@ namespace db {
 
 		T resize_delete_nonleaf(Node<T>* a, Node<T>* b) {
 			bool direct = a->k[0] < b->k[0] ? true : false;
-			
+
 			int la = a->n;
 			int lb = b->n;
 
 			int o = 0;
 			T tp;
 
-			if (direct) { 
+			if (direct) {
 				tp = search_left(getnode(b->a[0]));
 				o = a->move(direct, tp);
-				
+
 				b->n += o;
 				b->resize();
 
-				for (int i = 0;i < lb;i++) { 
+				for (int i = 0;i < lb;i++) {
 					b->k[lb + o - 1 - i] = b->k[lb - 1 - i];
 					b->a[lb + o - i] = b->a[lb - i];
 				}
-				b->k[o - 1] = tp; 
+				b->k[o - 1] = tp;
 				b->a[o] = b->a[0];
-				for (int i = 0;i < o - 1;i++) { 
+				for (int i = 0;i < o - 1;i++) {
 					b->k[o - 2 - i] = a->k[la - 1 - i];
 				}
 				T res = a->k[la - o];
-				for (int i = 0;i < o;i++) { 
+				for (int i = 0;i < o;i++) {
 					b->a[o - 1 - i] = a->a[la - i];
 				}
 
@@ -442,11 +442,11 @@ namespace db {
 				b->resize();
 
 				b->k[lb] = tp;
-				for (int i = 0;i < o - 1;i++) { 
+				for (int i = 0;i < o - 1;i++) {
 					b->k[lb + 1 + i] = a->k[i];
 				}
 				T res = a->k[o - 1];
-				for (int i = 0;i < o;i++) { 
+				for (int i = 0;i < o;i++) {
 					b->a[lb + 1 + i] = a->a[i];
 				}
 
@@ -482,11 +482,11 @@ namespace db {
 			x->n += ly;
 			x->resize();
 
-			for (int i = 0;i < ly;i++) { 
+			for (int i = 0;i < ly;i++) {
 				x->k[lx + i] = y->k[i];
 				x->a[lx + i] = y->a[i];
 			}
-			
+
 			y->n = 0;
 			x->next = y->next;
 			return true;
@@ -505,7 +505,7 @@ namespace db {
 				y = a;
 			}
 			T st = search_left(getnode(y->a[0]));
-			if (a->merge(b->size(),st)) return false;
+			if (a->merge(b->size(), st)) return false;
 
 			int lx = x->n;
 			int ly = y->n;
@@ -513,13 +513,13 @@ namespace db {
 			x->resize();
 
 			x->k[lx] = st;
-			for (int i = 0;i < ly;i++) { 
+			for (int i = 0;i < ly;i++) {
 				x->k[lx + 1 + i] = y->k[i];
 			}
-			for (int i = 0;i < ly + 1;i++) { 
+			for (int i = 0;i < ly + 1;i++) {
 				x->a[lx + 1 + i] = y->a[i];
 			}
-			
+
 			y->n = 0;
 			return true;
 		}
@@ -550,19 +550,19 @@ namespace db {
 			std::cout << std::endl;
 		}
 
-		void print_space(int level,int pd) {
+		void print_space(int level, int pd) {
 			str st = "";
-			for (int i = 1;i < (pd+3) * level;i++) {
-				if (i % (pd+3) == 0) st.append("|");
+			for (int i = 1;i < (pd + 3) * level;i++) {
+				if (i % (pd + 3) == 0) st.append("|");
 				else st.append(" ");
 			}
 			if (level != 0) st.append("+");
 			std::cout << st;
 		}
 
-		void print_nonleaf(Node<T>* nd, int level,int pd) {
+		void print_nonleaf(Node<T>* nd, int level, int pd) {
 			for (int i = 0;i < nd->n + 1;i++) {
-				if (i != 0) print_space(level,pd); // 第一个元素不用缩进
+				if (i != 0) print_space(level, pd); // 第一个元素不用缩进
 
 				if (i != nd->n) std::cout << std::setw(pd) << std::left << nd->k[i] << "--+";
 				else {
@@ -573,7 +573,7 @@ namespace db {
 				}
 
 				if (nd->flag == 2) print_leaf(getnode(nd->a[i]));
-				else print_nonleaf(getnode(nd->a[i]), level + 1,pd);
+				else print_nonleaf(getnode(nd->a[i]), level + 1, pd);
 			}
 		}
 
@@ -694,37 +694,37 @@ namespace db {
 		}
 
 		bool delkey(T key) {
-			if (search(key) == NULLADDR) return false; 
+			if (search(key) == NULLADDR) return false;
 
-			Node<T>* ndroot = getnode(root);  
-			Node<T>* p = ndroot; 
+			Node<T>* ndroot = getnode(root);
+			Node<T>* p = ndroot;
 
 			std::stack<Node<T>*> path;
-			std::stack<int> poffset; 
+			std::stack<int> poffset;
 
 			do {
 				int r = search_index(p, key);
-				path.push(p);		
-				poffset.push(r);   
+				path.push(p);
+				poffset.push(r);
 				p = getnode(p->a[r]);
 			} while (p->flag != 1);
 
 			direct_delete(p, key);
-			if (p->half()) return true; 
+			if (p->half()) return true;
 
-			Node<T>* pv = path.top(); 
-			int pov = poffset.top(); 
+			Node<T>* pv = path.top();
+			int pov = poffset.top();
 
 			if (pv == ndroot) {
 				if (pv->a[0] == NULLADDR) {
-					if (p->n == 0) { 
+					if (p->n == 0) {
 						erase_node(pv->a[1]);
 						pv->n = 0;
 					}
 					return true;
 				}
 				else if (pv->n == 1) {
-					int sign = 1 - pov; 
+					int sign = 1 - pov;
 					Node<T>* other = getnode(pv->a[sign]);
 					if (merge_delete_leaf(other, p)) {
 						erase_node(pv->a[1]);
@@ -738,24 +738,24 @@ namespace db {
 
 
 			int sign = pov == 0 ? 1 : pov - 1;
-			int tp = pov == 0 ? 0 : pov - 1;  
+			int tp = pov == 0 ? 0 : pov - 1;
 			Node<T>* other = getnode(pv->a[sign]);
 			if (merge_delete_leaf(other, p)) {
 				long long eaddr = pv->a[tp + 1];
 				erase_node(eaddr);
-				if (pv == ndroot || pv->half(pv->k[tp])) { 
+				if (pv == ndroot || pv->half(pv->k[tp])) {
 					direct_delete(pv, pv->k[tp]);
 					return true;
 				}
 			}
-			else { 
+			else {
 				pv->k[tp] = resize_delete_leaf(other, p);
 				return true;
 			}
 
 			do {
-				int curk = tp; 
-				p = path.top(); 
+				int curk = tp;
+				p = path.top();
 				path.pop();
 				poffset.pop();
 
@@ -763,24 +763,24 @@ namespace db {
 				pov = poffset.top();
 
 				sign = pov == 0 ? 1 : pov - 1;
-				tp = pov == 0 ? 0 : pov - 1; 
+				tp = pov == 0 ? 0 : pov - 1;
 				other = getnode(pv->a[sign]);
 				direct_delete(p, p->k[curk]);
 				if (merge_delete_nonleaf(other, p)) {
 					long long eaddr = pv->a[tp + 1];
 					erase_node(eaddr);
-					if ((pv == ndroot && pv->n > 1) || pv->half(pv->k[tp])) { 
+					if ((pv == ndroot && pv->n > 1) || pv->half(pv->k[tp])) {
 						direct_delete(pv, pv->k[tp]);
 						return true;
 					}
-					else if (pv == ndroot && pv->n == 1) { 
+					else if (pv == ndroot && pv->n == 1) {
 						long long eaddr = root;
 						root = ndroot->a[0];
 						erase_node(eaddr);
 						return true;
 					}
 				}
-				else { 
+				else {
 					pv->k[tp] = resize_delete_nonleaf(other, p);
 					return true;
 				}

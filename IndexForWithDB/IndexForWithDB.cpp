@@ -25,7 +25,7 @@ void testint() {
 	for (vector<int>::iterator it = arr.begin();it != arr.end();++it) {
 		tr->delkey(*it);
 		v++;
-		if (v > 470 || v%100==0) {
+		if (v > 470 || v % 100 == 0) {
 			tr->print_tree(3);
 		}
 	}
@@ -75,7 +75,7 @@ void teststr() {
 	for (vector<string>::iterator it = data.begin();it != data.end();++it) {
 		tr->delkey(*it);
 		v++;
-		if (v > 300 || v% 50==0) {
+		if (v > 300 || v % 50 == 0) {
 			tr->print_tree(15);
 		}
 	}
@@ -84,6 +84,6 @@ void teststr() {
 int main()
 {
 	testint();
-
+	teststr();
 	return 0;
 }

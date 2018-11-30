@@ -85,16 +85,5 @@ int main()
 {
 	testint();
 
-
-	//cout << *it << v << endl;
-//		if (v % 50 == 0) {
-//			tr->print_tree();
-//			tr->print_leaf();
-////			cout << endl;
-//		}
-
-			//tr->print_leaf();
-			//break;
-
 	return 0;
 }

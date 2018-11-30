@@ -18,7 +18,7 @@
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="btree.hpp">
+    <ClInclude Include="bptree.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

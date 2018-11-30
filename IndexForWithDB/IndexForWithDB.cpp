@@ -7,9 +7,31 @@
 
 using namespace std;
 
-int main()
-{
-	db::btree* tr = new db::btree();
+void testint() {
+	vector<int> arr;
+	for (int i = 1;i < 501;i++) arr.push_back(i);
+	random_shuffle(arr.begin(), arr.end());
+	db::bptree<int>* tr = new db::bptree<int>();
+	int v = 1;
+	for (vector<int>::iterator it = arr.begin();it != arr.end();++it) {
+		tr->insert(*it, v);
+		//tr->print_tree(3);
+		v++;
+	}
+	tr->print_tree(3);
+	tr->print_leaf();
+	random_shuffle(arr.begin(), arr.end());
+	v = 1;
+	for (vector<int>::iterator it = arr.begin();it != arr.end();++it) {
+		tr->delkey(*it);
+		v++;
+		if (v > 470 || v%100==0) {
+			tr->print_tree(3);
+		}
+	}
+}
+
+void teststr() {
 	string teststr[334] = { "bbcs","clear","sides","deal","view","delivered","worse","reporters","have","into",
 		"border","time","joint","the","thing","brexiteers","policy","might","prominent","proposals","there","regaining",
 		"however","that","street","able","britains","end","negotiate","period","deals","result","another","house:","working",
@@ -40,32 +62,39 @@ int main()
 		data.push_back(teststr[i]);
 	}
 	random_shuffle(data.begin(), data.end());
+	db::bptree<std::string>* tr = new db::bptree<std::string>();
 	int v = 1;
-	// todo insert加入校验以及截断
 	for (vector<string>::iterator it = data.begin();it != data.end();++it) {
 		tr->insert(*it, v);
 		v++;
 	}
-	//tr->print_tree();
-	//tr->print_leaf();
+	tr->print_tree(15);
+	tr->print_leaf();
 	random_shuffle(data.begin(), data.end());
 	v = 1;
 	for (vector<string>::iterator it = data.begin();it != data.end();++it) {
-		cout << *it << v << endl;
+		tr->delkey(*it);
+		v++;
+		if (v > 300 || v% 50==0) {
+			tr->print_tree(15);
+		}
+	}
+}
+
+int main()
+{
+	testint();
+
+
+	//cout << *it << v << endl;
 //		if (v % 50 == 0) {
 //			tr->print_tree();
 //			tr->print_leaf();
 ////			cout << endl;
 //		}
-		tr->delkey(*it);
-		v++;
-		if (v > 300) {
-			tr->print_tree();
+
 			//tr->print_leaf();
 			//break;
-		}
-	}
-	
 
 	return 0;
 }

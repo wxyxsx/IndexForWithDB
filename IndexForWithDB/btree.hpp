@@ -65,7 +65,13 @@ namespace db {
 		除去一定要占用的16bytes 剩下的字符串占用的大小一定要超过一般
 		*/
 		int split(std::string key) {
-			int r = search(key);
+			int r = n;
+			for (int i = 0;i < n;i++) {
+				if (key <= k[i]) {
+					r = i;
+					break;
+				}
+			}
 			int half = (int)(BUFFSIZE - 16) / 2;
 			int cur = 0;
 			for (int i = 0;i < r;i++) {
@@ -83,7 +89,7 @@ namespace db {
 
 		int search(std::string key) {
 			int r = n;
-			for (int i = 0;i <n;i++) {
+			for (int i = 0;i < n;i++) {
 				if (key <= k[i]) {
 					r = i;
 					break;
@@ -132,7 +138,7 @@ namespace db {
 			int o = 0;
 			for (int i = 0;i < n;i++) {
 				if (cur >= hf || remain < hf) { // 新节点不能加入超过一半 旧节点不能减少超过一半
-					o = i;  
+					o = i;
 					break;
 				}
 				int t;
@@ -140,7 +146,7 @@ namespace db {
 					t = k[n - 1 - i].length() + 9; // 从大到小
 				}
 				else {
-					t = k[i].length() + 9;	
+					t = k[i].length() + 9;
 				}
 				cur += t;
 				remain -= t;
@@ -246,12 +252,6 @@ namespace db {
 			nd->n++;
 		}
 
-		long long split_insert_leaf(Node* nd, std::string k, long long v) {
-			Node* nnd = new Node();
-			long long addr = setnode(nnd);
-
-
-		}
 
 		// 节点数据超过N，返回新节点的地址
 		long long split_insert(Node* nd, std::string k, long long v, bool if_leaf) {
@@ -348,7 +348,7 @@ namespace db {
 			int la = a->n;
 			int lb = b->n;
 
-			int o = a->resize(direct); 
+			int o = a->resize(direct);
 			// b需要插入的元素数目
 			b->k.resize(lb + o);
 			b->a.resize(lb + o);
@@ -664,7 +664,7 @@ namespace db {
 			std::stack<int> poffset; // 还要记录走的是哪个子节点
 
 			do {
-				int r = search_index(p,key);
+				int r = search_index(p, key);
 				path.push(p);		// 当前节点入栈
 				poffset.push(r);    // 偏移入栈
 				p = getnode(p->a[r]);
